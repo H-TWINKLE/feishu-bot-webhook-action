@@ -1,6 +1,6 @@
 {
   "name": "feishu-bot-webhook-action",
-  "version": "v4",
+  "version": "v5",
   "description": "GitHub Action for sending notifications to Feishu/Lark bot via webhook",
   "homepage": "https://github.com/H-TWINKLE/feishu-bot-webhook-action#readme",
   "bugs": {

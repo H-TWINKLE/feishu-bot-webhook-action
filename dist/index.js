@@ -30061,7 +30061,9 @@ async function postToFeishu(host, path, body) {
             core.error(`Feishu request error: ${e && (e.stack || e.message || e)}`);
             reject(e);
         });
-        core.info(`feishu body: ${body} options: ${JSON.stringify(options)}`);
+        const optionSecret = Object.assign(options, {});
+        optionSecret['path'] = '/****';
+        core.info(`feishu body: ${body} options: ${JSON.stringify(optionSecret)}`);
         req.write(body);
         req.end();
     });
