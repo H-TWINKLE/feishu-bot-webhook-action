@@ -25,4 +25,4 @@ git push origin main
 git push origin "v$VERSION"
 
 echo "发布完成！版本: v$VERSION"
-echo "现在可以在其他仓库中使用: XRSec/feishu-bot-webhook-action@v$VERSION"
+echo "现在可以在其他仓库中使用: H-TWINKLE/feishu-bot-webhook-action@v$VERSION"

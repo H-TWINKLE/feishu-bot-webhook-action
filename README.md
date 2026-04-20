@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send notification to Feishu
-        uses: XRSec/feishu-bot-webhook-action@v1
+        uses: H-TWINKLE/feishu-bot-webhook-action@v2
         with:
           FEISHU_BOT_WEBHOOK: ${{ secrets.FEISHU_BOT_WEBHOOK }}
           FEISHU_BOT_SIGNKEY: ${{ secrets.FEISHU_BOT_SIGNKEY }}
@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send custom message to Feishu
-        uses: XRSec/feishu-bot-webhook-action@v1
+        uses: H-TWINKLE/feishu-bot-webhook-action@v2
         with:
           FEISHU_BOT_WEBHOOK: ${{ secrets.FEISHU_BOT_WEBHOOK }}
           FEISHU_BOT_SIGNKEY: ${{ secrets.FEISHU_BOT_SIGNKEY }}
@@ -89,7 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send notification to Feishu
-        uses: XRSec/feishu-bot-webhook-action@v1
+        uses: H-TWINKLE/feishu-bot-webhook-action@v2
         with:
           FEISHU_BOT_WEBHOOK: ${{ secrets.FEISHU_BOT_WEBHOOK }}
           FEISHU_BOT_SIGNKEY: ${{ secrets.FEISHU_BOT_SIGNKEY }}
