@@ -1,6 +1,6 @@
 name: 'Feishu Bot Webhook Action'
 description: '发送消息到飞书机器人的 GitHub Action'
-author: 'XRSec'
+author: 'HTWINKLE'
 
 inputs:
   FEISHU_BOT_WEBHOOK:
