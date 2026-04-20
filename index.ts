@@ -52,13 +52,10 @@ function fetchCommitMessageFromGitHub(owner: string, repo: string, sha: string, 
   })
 }
 
-export async function postToFeishu(webhookId: string, body: string, tm?: number, sign?: string): Promise<string> {
+export async function postToFeishu(requestUrl: string, body: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const qs = tm && sign ? `?timestamp=${tm}&sign=${encodeURIComponent(sign)}` : ''
     const options: https.RequestOptions = {
-      hostname: 'open.feishu.cn',
-      port: 443,
-      path: `/open-apis/bot/v2/hook/${webhookId}${qs}`,
+      path: requestUrl,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -146,6 +143,7 @@ async function run(): Promise<void> {
     const dryInput = core.getInput('DRY_RUN') || process.env.DRY_RUN || ''
     const dry = dryInput === 'true' || dryInput === '1' || process.argv.includes('--dry')
 
+    const msgTitleInput = core.getInput('MSG_TITLE') || process.env.MSG_TITLE || ''
     const msgTextInput = core.getInput('MSG_TEXT') || process.env.MSG_TEXT || ''
 
     if (!webhook && !dry) {
@@ -157,7 +155,8 @@ async function run(): Promise<void> {
     core.debug(JSON.stringify(payload))
     let tm = Math.floor(Date.now() / 1000)
     let sign = sign_with_timestamp(tm, signKey)
-    let webhookId = webhook.includes('hook/') ? webhook.slice(webhook.indexOf('hook/') + 5) : webhook
+    let webhookId = webhook.includes('hook/') && !webhook.includes('trigger-webhook/') ?
+        webhook.slice(webhook.indexOf('hook/') + 5) : undefined
 
     // commit message & sha
     let commitMsg = payload.head_commit?.message || ''
@@ -184,6 +183,8 @@ async function run(): Promise<void> {
     const title = `Action ${repoName || workflow} OK`
     const runId = process.env.GITHUB_RUN_ID || ''
     const detailUrl = (repoFull && runId) ? `https://github.com/${repoFull}/actions/runs/${runId}` : (commitUrl || '')
+    const qs = tm && sign ? `?timestamp=${tm}&sign=${encodeURIComponent(sign)}` : ''
+    const requestUrl = webhookId ? `https://open.feishu.cn/open-apis/bot/v2/hook/${webhookId}${qs}` : webhook
 
     const defaultValues: Record<string, string | undefined> = {
       actor: actor,
@@ -217,12 +218,14 @@ async function run(): Promise<void> {
     }
 
     // 如果提供 MSG_TEXT，则使用新的简化 json 格式
+    core.info(`msgTitleInput: ${msgTitleInput}`)
     core.info(`msgTextInput: ${msgTextInput}`)
     if (msgTextInput) {
       const postCard = {
         elements: [
           {
             tag: "markdown",
+            title: msgTitleInput,
             content: msgTextInput
           }
         ]
@@ -234,7 +237,7 @@ async function run(): Promise<void> {
         return
       }
 
-      const msg = await postToFeishu(webhookId, buildInteractiveCardPayload(postCard), tm, sign)
+      const msg = await postToFeishu(requestUrl, buildInteractiveCardPayload(postCard))
       core.info(`Sent markdown card to Feishu, msg: ${msg}`)
       return
     }
@@ -250,7 +253,7 @@ async function run(): Promise<void> {
       return
     }
 
-    const msg = await postToFeishu(webhookId, buildInteractiveCardPayload(postCard), tm, sign)
+    const msg = await postToFeishu(requestUrl, buildInteractiveCardPayload(postCard))
     core.info(`Sent markdown card to Feishu, msg: ${msg}`)
   } catch (error) {
     core.setFailed(`Action failed: ${error}`)
