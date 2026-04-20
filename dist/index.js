@@ -30018,13 +30018,10 @@ function fetchCommitMessageFromGitHub(owner, repo, sha, token) {
         req.end();
     });
 }
-async function postToFeishu(webhookId, body, tm, sign) {
+async function postToFeishu(requestUrl, body) {
     return new Promise((resolve, reject) => {
-        const qs = tm && sign ? `?timestamp=${tm}&sign=${encodeURIComponent(sign)}` : '';
         const options = {
-            hostname: 'open.feishu.cn',
-            port: 443,
-            path: `/open-apis/bot/v2/hook/${webhookId}${qs}`,
+            path: requestUrl,
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -30096,6 +30093,7 @@ async function run() {
         const signKey = (core.getInput('FEISHU_BOT_SIGNKEY') || process.env.FEISHU_BOT_SIGNKEY || '').trim();
         const dryInput = core.getInput('DRY_RUN') || process.env.DRY_RUN || '';
         const dry = dryInput === 'true' || dryInput === '1' || process.argv.includes('--dry');
+        const msgTitleInput = core.getInput('MSG_TITLE') || process.env.MSG_TITLE || '';
         const msgTextInput = core.getInput('MSG_TEXT') || process.env.MSG_TEXT || '';
         if (!webhook && !dry) {
             core.setFailed('FEISHU_BOT_WEBHOOK is required for live send. For dry run set DRY_RUN=true or use --dry.');
@@ -30105,7 +30103,8 @@ async function run() {
         core.debug(JSON.stringify(payload));
         let tm = Math.floor(Date.now() / 1000);
         let sign = sign_with_timestamp(tm, signKey);
-        let webhookId = webhook.includes('hook/') ? webhook.slice(webhook.indexOf('hook/') + 5) : webhook;
+        let webhookId = webhook.includes('hook/') && !webhook.includes('trigger-webhook/') ?
+            webhook.slice(webhook.indexOf('hook/') + 5) : undefined;
         let commitMsg = payload.head_commit?.message || '';
         let sha = payload.head_commit?.id || process.env.GITHUB_SHA || '';
         if (!commitMsg && process.env.GITHUB_TOKEN && sha && payload.repository?.full_name) {
@@ -30128,6 +30127,8 @@ async function run() {
         const title = `Action ${repoName || workflow} OK`;
         const runId = process.env.GITHUB_RUN_ID || '';
         const detailUrl = (repoFull && runId) ? `https://github.com/${repoFull}/actions/runs/${runId}` : (commitUrl || '');
+        const qs = tm && sign ? `?timestamp=${tm}&sign=${encodeURIComponent(sign)}` : '';
+        const requestUrl = webhookId ? `https://open.feishu.cn/open-apis/bot/v2/hook/${webhookId}${qs}` : webhook;
         const defaultValues = {
             actor: actor,
             repo_full: repoFull,
@@ -30154,12 +30155,14 @@ async function run() {
                 core.warning('时间戳与当前时间相差超过 1 小时，飞书将拒绝请求。请检查 Runner 系统时间。');
             }
         }
+        core.info(`msgTitleInput: ${msgTitleInput}`);
         core.info(`msgTextInput: ${msgTextInput}`);
         if (msgTextInput) {
             const postCard = {
                 elements: [
                     {
                         tag: "markdown",
+                        title: msgTitleInput,
                         content: msgTextInput
                     }
                 ]
@@ -30169,7 +30172,7 @@ async function run() {
                 core.info(buildInteractiveCardPayload(postCard));
                 return;
             }
-            const msg = await postToFeishu(webhookId, buildInteractiveCardPayload(postCard), tm, sign);
+            const msg = await postToFeishu(requestUrl, buildInteractiveCardPayload(postCard));
             core.info(`Sent markdown card to Feishu, msg: ${msg}`);
             return;
         }
@@ -30180,7 +30183,7 @@ async function run() {
             core.info(buildInteractiveCardPayload(postCard));
             return;
         }
-        const msg = await postToFeishu(webhookId, buildInteractiveCardPayload(postCard), tm, sign);
+        const msg = await postToFeishu(requestUrl, buildInteractiveCardPayload(postCard));
         core.info(`Sent markdown card to Feishu, msg: ${msg}`);
     }
     catch (error) {

@@ -195,3 +195,7 @@ npm run build
 ## 许可证
 
 ISC
+
+## 贡献
+本仓库基于[XRSec/feishu-bot-webhook-action](https://github.com/XRSec/feishu-bot-webhook-action)进行构建
+感谢开源社区的支持
