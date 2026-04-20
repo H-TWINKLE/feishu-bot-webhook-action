@@ -30018,10 +30018,12 @@ function fetchCommitMessageFromGitHub(owner, repo, sha, token) {
         req.end();
     });
 }
-async function postToFeishu(requestUrl, body) {
+async function postToFeishu(host, path, body) {
     return new Promise((resolve, reject) => {
         const options = {
-            path: requestUrl,
+            hostname: host,
+            port: 443,
+            path: path,
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -30128,7 +30130,8 @@ async function run() {
         const runId = process.env.GITHUB_RUN_ID || '';
         const detailUrl = (repoFull && runId) ? `https://github.com/${repoFull}/actions/runs/${runId}` : (commitUrl || '');
         const qs = tm && sign ? `?timestamp=${tm}&sign=${encodeURIComponent(sign)}` : '';
-        const requestUrl = webhookId ? `https://open.feishu.cn/open-apis/bot/v2/hook/${webhookId}${qs}` : webhook;
+        const requestHost = webhookId ? `open.feishu.cn` : new URL(webhook).hostname;
+        const requestUrl = webhookId ? `open-apis/bot/v2/hook/${webhookId}${qs}` : new URL(webhook).pathname;
         const defaultValues = {
             actor: actor,
             repo_full: repoFull,
@@ -30172,7 +30175,7 @@ async function run() {
                 core.info(buildInteractiveCardPayload(postCard));
                 return;
             }
-            const msg = await postToFeishu(requestUrl, buildInteractiveCardPayload(postCard));
+            const msg = await postToFeishu(requestHost, requestUrl, buildInteractiveCardPayload(postCard));
             core.info(`Sent markdown card to Feishu, msg: ${msg}`);
             return;
         }
@@ -30183,7 +30186,7 @@ async function run() {
             core.info(buildInteractiveCardPayload(postCard));
             return;
         }
-        const msg = await postToFeishu(requestUrl, buildInteractiveCardPayload(postCard));
+        const msg = await postToFeishu(requestHost, requestUrl, buildInteractiveCardPayload(postCard));
         core.info(`Sent markdown card to Feishu, msg: ${msg}`);
     }
     catch (error) {

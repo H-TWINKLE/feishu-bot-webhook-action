@@ -52,10 +52,12 @@ function fetchCommitMessageFromGitHub(owner: string, repo: string, sha: string, 
   })
 }
 
-export async function postToFeishu(requestUrl: string, body: string): Promise<string> {
+export async function postToFeishu(host: string, path: string, body: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const options: https.RequestOptions = {
-      path: requestUrl,
+      hostname: host,
+      port: 443,
+      path: path,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -184,7 +186,8 @@ async function run(): Promise<void> {
     const runId = process.env.GITHUB_RUN_ID || ''
     const detailUrl = (repoFull && runId) ? `https://github.com/${repoFull}/actions/runs/${runId}` : (commitUrl || '')
     const qs = tm && sign ? `?timestamp=${tm}&sign=${encodeURIComponent(sign)}` : ''
-    const requestUrl = webhookId ? `https://open.feishu.cn/open-apis/bot/v2/hook/${webhookId}${qs}` : webhook
+    const requestHost = webhookId ? `open.feishu.cn` :new URL(webhook).hostname
+    const requestUrl = webhookId ? `open-apis/bot/v2/hook/${webhookId}${qs}` : new URL(webhook).pathname
 
     const defaultValues: Record<string, string | undefined> = {
       actor: actor,
@@ -237,7 +240,7 @@ async function run(): Promise<void> {
         return
       }
 
-      const msg = await postToFeishu(requestUrl, buildInteractiveCardPayload(postCard))
+      const msg = await postToFeishu(requestHost, requestUrl, buildInteractiveCardPayload(postCard))
       core.info(`Sent markdown card to Feishu, msg: ${msg}`)
       return
     }
@@ -253,7 +256,7 @@ async function run(): Promise<void> {
       return
     }
 
-    const msg = await postToFeishu(requestUrl, buildInteractiveCardPayload(postCard))
+    const msg = await postToFeishu(requestHost, requestUrl, buildInteractiveCardPayload(postCard))
     core.info(`Sent markdown card to Feishu, msg: ${msg}`)
   } catch (error) {
     core.setFailed(`Action failed: ${error}`)
